@@ -1,17 +1,30 @@
-import { Body, Controller, Post } from '@nestjs/common';
-import { AuthLoginDto } from './dto/auth-login.dto';
-import { AuthForgetDto } from './dto/auth-forget.dto';
-import { AuthResetDto } from './dto/auth-reset.dto';
+import {
+  BadRequestException,
+  Body,
+  Controller,
+  Post,
+  UploadedFile,
+  UseGuards,
+  UseInterceptors,
+} from '@nestjs/common';
+import { User } from 'src/decorators/user.decorator';
+import { AuthGuard } from 'src/guards/auth.guard';
 import { UserService } from 'src/user/user.service';
-import { AuthRegisterDto } from './dto/auth-register.dto';
 import { AuthService } from './auth.service';
-import { AuthMeDto } from './dto/auth-me.dto';
+import { AuthForgetDto } from './dto/auth-forget.dto';
+import { AuthLoginDto } from './dto/auth-login.dto';
+import { AuthRegisterDto } from './dto/auth-register.dto';
+import { AuthResetDTO } from './dto/auth-reset.dto';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { join } from 'path';
+import { FileService } from 'src/file/file.service';
 
 @Controller('auth')
 export class AuthController {
   constructor(
     private readonly userService: UserService,
     private readonly authService: AuthService,
+    private readonly fileService: FileService,
   ) {}
 
   @Post('login')
@@ -30,12 +43,33 @@ export class AuthController {
   }
 
   @Post('reset')
-  async reset(@Body() { password, token }: AuthResetDto) {
+  async reset(@Body() { password, token }: AuthResetDTO) {
     return await this.authService.reset(password, token);
   }
 
+  @UseGuards(AuthGuard)
   @Post('me')
-  async me(@Body() body: AuthMeDto) {
-    return await this.authService.checkToken(body.token);
+  async me(@User() user) {
+    return { user };
+  }
+
+  @UseInterceptors(FileInterceptor('file'))
+  @UseGuards(AuthGuard)
+  @Post('photo')
+  async uploadPhoto(@User() user, @UploadedFile() photo: Express.Multer.File) {
+    const path = join(
+      __dirname,
+      '..',
+      '..',
+      'storage',
+      'photos',
+      `photo-${user.id}.jpg`,
+    );
+    try {
+      await this.fileService.uploadPhoto(photo, path);
+    } catch (error) {
+      throw new BadRequestException(error);
+    }
+    return { photo: `photo-${user.id}.jpg` };
   }
 }
