@@ -3,8 +3,8 @@ import { UserEntity } from '../user/entity/user.entity';
 
 export const userEntityList: UserEntity[] = [
   {
-    name: 'Joao',
-    email: 'joao@gmail.com.br',
+    name: 'Joao Rangel',
+    email: 'joao@hcode.com.br',
     birthAt: new Date('2000-01-01'),
     id: 1,
     password: '$2b$10$KTCMumuAvsZcxgEXCA4.x.sqeqtrWXmB7ptFGkF.f32XW3OE3Awb6',
@@ -13,8 +13,8 @@ export const userEntityList: UserEntity[] = [
     updatedAt: new Date(),
   },
   {
-    name: 'Daniel',
-    email: 'daniel@hcode.com.br',
+    name: 'Glaucio Daniel',
+    email: 'glaucio@hcode.com.br',
     birthAt: new Date('2000-01-01'),
     id: 2,
     password: '$2b$10$KTCMumuAvsZcxgEXCA4.x.sqeqtrWXmB7ptFGkF.f32XW3OE3Awb6',
@@ -23,7 +23,7 @@ export const userEntityList: UserEntity[] = [
     updatedAt: new Date(),
   },
   {
-    name: 'Djalma',
+    name: 'Djalma Sindaux',
     email: 'djalma@hcode.com.br',
     birthAt: new Date('2000-01-01'),
     id: 3,

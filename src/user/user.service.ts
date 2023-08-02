@@ -1,32 +1,41 @@
 import {
-  BadRequestException,
   Injectable,
   NotFoundException,
+  BadRequestException,
 } from '@nestjs/common';
 import { CreateUserDTO } from './dto/create-user.dto';
-
-import { UpdatePutUserDto } from './dto/update-put-user.dto';
-import { UpdatePatchUserDto } from './dto/update-patch-user.dto';
+import { UpdatePatchUserDTO } from './dto/update-patch-user.dto';
+import { UpdatePutUserDTO } from './dto/update-put-user.dto';
 import * as bcrypt from 'bcrypt';
+import { UserEntity } from './entity/user.entity';
 import { Repository } from 'typeorm';
-import { User } from './entity/user.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 
 @Injectable()
 export class UserService {
   constructor(
-    @InjectRepository(User)
-    private usersRepository: Repository<User>,
+    @InjectRepository(UserEntity)
+    private usersRepository: Repository<UserEntity>,
   ) {}
 
   async create(data: CreateUserDTO) {
-    if (await this.usersRepository.exist({ where: { email: data.email } })) {
-      throw new BadRequestException('Esse E-mail already exists');
-    } else {
-      data.password = await bcrypt.hash(data.password, await bcrypt.genSalt());
-      const user = this.usersRepository.create(data);
-      return this.usersRepository.save(user);
+    if (
+      await this.usersRepository.exist({
+        where: {
+          email: data.email,
+        },
+      })
+    ) {
+      throw new BadRequestException('Este e-mail já está sendo usado.');
     }
+
+    const salt = await bcrypt.genSalt();
+
+    data.password = await bcrypt.hash(data.password, salt);
+
+    const user = this.usersRepository.create(data);
+
+    return this.usersRepository.save(user);
   }
 
   async list() {
@@ -35,20 +44,27 @@ export class UserService {
 
   async show(id: number) {
     await this.exists(id);
-    return this.usersRepository.findOneBy({ id });
+
+    return this.usersRepository.findOneBy({
+      id,
+    });
   }
 
   async update(
     id: number,
-    { name, email, password, birthday, role }: UpdatePutUserDto,
+    { email, name, password, birthAt, role }: UpdatePutUserDTO,
   ) {
     await this.exists(id);
-    password = await bcrypt.hash(password, await bcrypt.genSalt());
+
+    const salt = await bcrypt.genSalt();
+
+    password = await bcrypt.hash(password, salt);
+
     await this.usersRepository.update(id, {
-      name,
       email,
+      name,
       password,
-      birthday: birthday ? new Date(birthday) : null,
+      birthAt: birthAt ? new Date(birthAt) : null,
       role,
     });
 
@@ -57,41 +73,55 @@ export class UserService {
 
   async updatePartial(
     id: number,
-    { name, email, password, birthday, role }: UpdatePatchUserDto,
+    { email, name, password, birthAt, role }: UpdatePatchUserDTO,
   ) {
     await this.exists(id);
+
     const data: any = {};
-    if (birthday) {
-      data.birthDate = new Date(birthday);
+
+    if (birthAt) {
+      data.birthAt = new Date(birthAt);
     }
-    if (name) {
-      data.name = name;
-    }
+
     if (email) {
       data.email = email;
     }
-    if (password) {
-      data.password = await bcrypt.hash(password, await bcrypt.genSalt());
+
+    if (name) {
+      data.name = name;
     }
+
+    if (password) {
+      const salt = await bcrypt.genSalt();
+      data.password = await bcrypt.hash(password, salt);
+    }
+
     if (role) {
       data.role = role;
     }
-    this.usersRepository.update(id, data);
+
+    await this.usersRepository.update(id, data);
+
     return this.show(id);
   }
 
   async delete(id: number) {
     await this.exists(id);
-    return this.usersRepository.delete(id);
+
+    await this.usersRepository.delete(id);
+
+    return true;
   }
 
   async exists(id: number) {
     if (
-      this.usersRepository.exist({
-        where: { id },
-      })
+      !(await this.usersRepository.exist({
+        where: {
+          id,
+        },
+      }))
     ) {
-      throw new NotFoundException('O usuário não existe');
+      throw new NotFoundException(`O usuário ${id} não existe.`);
     }
   }
 }

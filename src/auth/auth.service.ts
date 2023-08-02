@@ -1,41 +1,37 @@
-import {
-  BadRequestException,
-  Injectable,
-  UnauthorizedException,
-} from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
+import { UnauthorizedException } from '@nestjs/common/exceptions/unauthorized.exception';
 import { JwtService } from '@nestjs/jwt';
-
-import { AuthRegisterDto } from './dto/auth-register.dto';
-import { UserService } from 'src/user/user.service';
+import { AuthRegisterDTO } from './dto/auth-register.dto';
 import * as bcrypt from 'bcrypt';
 import { MailerService } from '@nestjs-modules/mailer/dist';
-import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { User } from 'src/user/entity/user.entity';
+import { InjectRepository } from '@nestjs/typeorm';
+import { UserService } from '../user/user.service';
+import { UserEntity } from '../user/entity/user.entity';
 
 @Injectable()
 export class AuthService {
   private issuer = 'login';
-  private audience = 'user';
+  private audience = 'users';
 
   constructor(
-    private readonly jWTService: JwtService,
+    private readonly jwtService: JwtService,
     private readonly userService: UserService,
-    private readonly mailerService: MailerService,
-    @InjectRepository(User)
-    private usersRepository: Repository<User>,
+    private readonly mailer: MailerService,
+    @InjectRepository(UserEntity)
+    private usersRepository: Repository<UserEntity>,
   ) {}
 
-  createToken(user: User) {
+  createToken(user: UserEntity) {
     return {
-      accessToken: this.jWTService.sign(
+      accessToken: this.jwtService.sign(
         {
           id: user.id,
           name: user.name,
           email: user.email,
         },
         {
-          expiresIn: '8h',
+          expiresIn: '7 days',
           subject: String(user.id),
           issuer: this.issuer,
           audience: this.audience,
@@ -46,13 +42,14 @@ export class AuthService {
 
   checkToken(token: string) {
     try {
-      const data = this.jWTService.verify(token, {
-        audience: this.audience,
+      const data = this.jwtService.verify(token, {
         issuer: this.issuer,
+        audience: this.audience,
       });
+
       return data;
-    } catch (error) {
-      throw new BadRequestException(error);
+    } catch (e) {
+      throw new BadRequestException(e);
     }
   }
 
@@ -60,24 +57,22 @@ export class AuthService {
     try {
       this.checkToken(token);
       return true;
-    } catch (error) {
+    } catch (e) {
       return false;
     }
   }
 
   async login(email: string, password: string) {
-    const user = await this.usersRepository.findOne({
-      where: {
-        email,
-      },
+    const user = await this.usersRepository.findOneBy({
+      email,
     });
 
     if (!user) {
-      throw new UnauthorizedException('Invalid credentials');
+      throw new UnauthorizedException('E-mail e/ou senha incorretos.');
     }
 
     if (!(await bcrypt.compare(password, user.password))) {
-      throw new UnauthorizedException('Invalid credentials');
+      throw new UnauthorizedException('E-mail e/ou senha incorretos.');
     }
 
     return this.createToken(user);
@@ -89,46 +84,43 @@ export class AuthService {
     });
 
     if (!user) {
-      throw new UnauthorizedException('Invalid credentials');
+      throw new UnauthorizedException('E-mail está incorreto.');
     }
 
-    const token = this.jWTService.sign(
+    const token = this.jwtService.sign(
       {
         id: user.id,
       },
       {
-        expiresIn: '1h',
+        expiresIn: '30 minutes',
         subject: String(user.id),
         issuer: 'forget',
         audience: 'users',
       },
     );
 
-    // To do: send email with reset token
-    await this.mailerService.sendMail({
-      subject: 'Reset password',
-      to: 'joaodematejr@gmail.com',
-      template: './forget',
+    await this.mailer.sendMail({
+      subject: 'Recuperação de Senha',
+      to: 'joao@hcode.com.br',
+      template: 'forget',
       context: {
         name: user.name,
         token,
       },
     });
 
-    return true;
+    return { success: true };
   }
 
   async reset(password: string, token: string) {
-    // To do: check token
-    // To do: update password
-
     try {
-      const data: any = this.jWTService.verify(token, {
+      const data: any = this.jwtService.verify(token, {
         issuer: 'forget',
         audience: 'users',
       });
+
       if (isNaN(Number(data.id))) {
-        throw new BadRequestException('Invalid token');
+        throw new BadRequestException('Token é inválido.');
       }
 
       const salt = await bcrypt.genSalt();
@@ -137,15 +129,20 @@ export class AuthService {
       await this.usersRepository.update(Number(data.id), {
         password,
       });
+
       const user = await this.userService.show(Number(data.id));
+
       return this.createToken(user);
-    } catch (error) {
-      throw new BadRequestException(error);
+    } catch (e) {
+      throw new BadRequestException(e);
     }
   }
 
-  async register(data: AuthRegisterDto) {
+  async register(data: AuthRegisterDTO) {
+    delete data.role;
+
     const user = await this.userService.create(data);
+
     return this.createToken(user);
   }
 }

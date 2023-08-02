@@ -1,36 +1,39 @@
+import { APP_GUARD } from '@nestjs/core';
 import { Module, forwardRef } from '@nestjs/common';
+import { ThrottlerModule } from '@nestjs/throttler';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { UserModule } from './user/user.module';
 import { AuthModule } from './auth/auth.module';
-import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
-import { APP_GUARD } from '@nestjs/core';
+import { UserModule } from './user/user.module';
+import { ThrottlerGuard } from '@nestjs/throttler/dist/throttler.guard';
 import { ConfigModule } from '@nestjs/config';
 import { MailerModule } from '@nestjs-modules/mailer';
 import { PugAdapter } from '@nestjs-modules/mailer/dist/adapters/pug.adapter';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { User } from './user/entity/user.entity';
+import { UserEntity } from './user/entity/user.entity';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
-      envFilePath: '.env',
+      envFilePath: process.env.ENV === 'test' ? '.env.test' : '.env',
     }),
     ThrottlerModule.forRoot({
       ttl: 60,
-      limit: 10,
+      limit: 100,
     }),
+    forwardRef(() => UserModule),
+    forwardRef(() => AuthModule),
     MailerModule.forRoot({
       transport: {
         host: 'smtp.ethereal.email',
         port: 587,
         auth: {
-          user: 'frida.schiller@ethereal.email',
-          pass: 'ZktukBcjHYfMymhAp4',
+          user: 'marcelo44@ethereal.email',
+          pass: 'YutK7Qq3QFwDDDahfC',
         },
       },
       defaults: {
-        from: '"nest-modules" <frida.schiller@ethereal.email>',
+        from: '"Hcode" <marcelo44@ethereal.email>',
       },
       template: {
         dir: __dirname + '/templates',
@@ -47,11 +50,9 @@ import { User } from './user/entity/user.entity';
       username: process.env.DB_USERNAME,
       password: process.env.DB_PASSWORD,
       database: process.env.DB_DATABASE,
-      entities: [User],
+      entities: [UserEntity],
       synchronize: process.env.ENV === 'development',
     }),
-    forwardRef(() => UserModule),
-    forwardRef(() => AuthModule),
   ],
   controllers: [AppController],
   providers: [

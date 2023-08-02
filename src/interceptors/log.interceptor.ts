@@ -3,17 +3,16 @@ import { Observable } from 'rxjs';
 import { tap } from 'rxjs/operators';
 
 export class LogInterceptor implements NestInterceptor {
-  intercept(
-    context: ExecutionContext,
-    next: CallHandler<any>,
-  ): Observable<any> | Promise<Observable<any>> {
+  intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
+    const dt = Date.now();
+
     return next.handle().pipe(
-      tap((data) => {
+      tap(() => {
         const request = context.switchToHttp().getRequest();
-        const response = context.switchToHttp().getResponse();
-        console.log(
-          `[${request.method}] ${request.url} ${response.statusCode}`,
-        );
+
+        console.log(`URL: ${request.url}`);
+        console.log(`METHOD: ${request.method}`);
+        console.log(`Execução levou: ${Date.now() - dt} milisegundos.`);
       }),
     );
   }

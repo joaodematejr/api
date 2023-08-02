@@ -26,7 +26,7 @@
     "migrate:create": "npm run typeorm:ts migration:create -- ./typeorm/migrations/Migrate",
     "migrate:up": "npm run typeorm:ts migration:run -- -d ./typeorm/data-source.ts",
     "migrate:down": "npm run typeorm:ts migration:revert -- -d ./typeorm/data-source.ts",
-    "preprod": "npm run format && npm run lint && npm test && npm run test:e2e",
+    "preprod": "npm run format && npm run lint && npm test && npm run test:e2e", 
     "prod": "npm run build"
   },
   "dependencies": {
@@ -48,10 +48,9 @@
     "reflect-metadata": "^0.1.13",
     "rimraf": "^3.0.2",
     "rxjs": "^7.2.0",
-    "typeorm": "^0.3.17"
+    "typeorm": "^0.3.11"
   },
   "devDependencies": {
-    "dotenv": "^16.0.3", 
     "@nestjs/cli": "^9.0.0",
     "@nestjs/schematics": "^9.0.0",
     "@nestjs/testing": "^9.0.0",
@@ -64,6 +63,8 @@
     "@types/supertest": "^2.0.11",
     "@typescript-eslint/eslint-plugin": "^5.0.0",
     "@typescript-eslint/parser": "^5.0.0",
+    "cross-env": "^7.0.3",
+    "dotenv": "^16.0.3",
     "eslint": "^8.0.1",
     "eslint-config-prettier": "^8.3.0",
     "eslint-plugin-prettier": "^4.0.0",

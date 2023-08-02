@@ -12,6 +12,6 @@ export class AppController {
 
   @Post()
   setHello(): string {
-    return this.appService.setHello();
+    return 'POST: Hello Hcode!';
   }
 }
